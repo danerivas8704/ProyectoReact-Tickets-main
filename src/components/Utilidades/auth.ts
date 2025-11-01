@@ -23,7 +23,7 @@ export function useLogout() {
         localStorage.removeItem("usuario");
 
         // Redirigir al login
-        navigate("/login/ingreso");
+        navigate("/ingreso");
 
         // Refrescar la página (opcional)
         setTimeout(() => {
