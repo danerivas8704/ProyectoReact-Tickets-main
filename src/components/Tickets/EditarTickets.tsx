@@ -1,161 +1,283 @@
-import { useEffect, useState, ChangeEvent } from "react"
+import { ChangeEvent, useEffect, useState } from "react"
 import { useNavigate, useParams } from "react-router"
 import Swal from "sweetalert2"
-import {
-  Container,
-  Row,
-  Col,
-  Form,
-  FormGroup,
-  Label,
-  Input,
-  Button,
-  FormLabel,
-  FormControl
-} from "reactstrap"
-import { appsettings } from "../settings/appsetings"
-import type { ICliente } from "../Interfaces/ICliente"
+import { Container, Row, Col, Form, FormGroup, Label, Input, Button } from "reactstrap"
+import { appsettings } from "../../settings/appsetings"
+import type { ITicket } from "../../Interfaces/ITicket"
 
-const initialCliente: ICliente = {
+// --- Interfaz de catálogos simples ---
+interface ICatalogo {
+  id: number
+  nombre: string
+}
+
+// --- Estado inicial del ticket ---
+const initialTicket: ITicket = {
+  descripcionTicket: "",
   codigoCliente: 0,
-  nombreCliente: "",
-  correoCliente: "",
-  apellidoCliente: "",
-  direccionCliente: "",
-  codigoEstado: 1,
-};
+  tituloTicket: "",
+  codigoCategoria: 0,
+  codigoPrioridad: 0,
+  codigoDepto: 0,
+  codigoUsuario: 0,
+  codigoEstado: 0,
+  usuarioCreacion: localStorage.getItem("usuario") ?? "",
+  fechaCreacion: new Date(),
+  fechaModificacion: new Date(),
+  fechaCierre: new Date()
+}
 
-export function EditarTickets() {
-  const { id } = useParams<{ id: string }>();
-  const [cliente, setCliente] = useState<ICliente>(initialCliente);
-  const [cargando, setCargando] = useState<boolean>(true);
-  const navigate = useNavigate();
+export function EditarTicket() {
+  const navigate = useNavigate()
+  const { id } = useParams<{ id: string }>()
+  const [ticket, setTicket] = useState<ITicket>(initialTicket)
 
-  /** 🔹 Cargar cliente al montar el componente */
-  useEffect(() => {
-    const obtenerCliente = async () => {
-      try {
-        const response = await fetch(`${appsettings.apiUrl}Clientes/ObtenerCodigo/${id}`);
-        if (!response.ok) throw new Error("Error al obtener el cliente");
-        const data: ICliente = await response.json();
-        if (Array.isArray(data) && data.length > 0) {
-        setCliente(data[0]);
-        }
-      } catch (error) {
-        Swal.fire("Error", "No se pudo cargar la información del cliente", "error");
-      } finally {
-        setCargando(false);
-      }
-    };
+  // --- Catálogos ---
+  const [clientes, setClientes] = useState<ICatalogo[]>([])
+  const [categorias, setCategorias] = useState<ICatalogo[]>([])
+  const [prioridades, setPrioridades] = useState<ICatalogo[]>([])
+  const [departamentos, setDepartamentos] = useState<ICatalogo[]>([])
+  const [usuarios, setUsuarios] = useState<ICatalogo[]>([])
+  const [estados, setEstados] = useState<ICatalogo[]>([])
 
-    obtenerCliente();
-  }, []);
+  // --- Manejo de inputs ---
+  const inputChangeValue = (event: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+    const { name, value } = event.target
+    setTicket({
+      ...ticket,
+      [name]: value,
+    })
+  }
 
-  /** 🔹 Actualizar el estado cuando cambian los inputs */
-  const inputChangeValue=(event:ChangeEvent<HTMLInputElement>) => {
-    const inputName = event.target.name;
-    const inputValue = event.target.value;  
-    setCliente({
-      ...cliente,
-      [inputName]: inputValue
-    }); 
-  };
-
-  /** 🔹 Guardar cambios */
-  const guardar = async () => {
+  // --- Cargar catálogos ---
+  const cargarCatalogos = async () => {
     try {
-      const response = await fetch(`${appsettings.apiUrl}Clientes/Editar`, {
+      const [clientesRes, categoriasRes, prioridadesRes, deptosRes, usuariosRes, estadosRes] = await Promise.all([
+        fetch(`${appsettings.apiUrl}Clientes/ObtenerC`),
+        fetch(`${appsettings.apiUrl}Categorias/ObtenerC`),
+        fetch(`${appsettings.apiUrl}Prioridades/ObtenerC`),
+        fetch(`${appsettings.apiUrl}Departamentos/ObtenerC`),
+        fetch(`${appsettings.apiUrl}Usuarios/ObtenerC`),
+        fetch(`${appsettings.apiUrl}Estados/ObtenerC`)
+      ])
+
+      if (clientesRes.ok && categoriasRes.ok && prioridadesRes.ok && deptosRes.ok && usuariosRes.ok && estadosRes.ok) {
+        setClientes(await clientesRes.json())
+        setCategorias(await categoriasRes.json())
+        setPrioridades(await prioridadesRes.json())
+        setDepartamentos(await deptosRes.json())
+        setUsuarios(await usuariosRes.json())
+        setEstados(await estadosRes.json())
+      } else {
+        throw new Error("Error al cargar catálogos")
+      }
+    } catch (error) {
+      console.error("Error cargando catálogos:", error)
+      Swal.fire("Error", "No se pudieron cargar los catálogos", "error")
+    }
+  }
+
+  // --- Cargar ticket existente ---
+  const cargarTicket = async () => {
+    try {
+      const response = await fetch(`${appsettings.apiUrl}Tickets/ObtenerCodigo/${id}`)
+      if (!response.ok) throw new Error("Error al obtener el ticket");
+              const data: ITicket = await response.json();
+              if (Array.isArray(data) && data.length > 0) {
+              setTicket(data[0]);
+              }
+           else {
+        Swal.fire("Error", "No se pudo cargar el ticket", "error")
+      }
+    } catch (error) {
+      console.error("Error cargando ticket:", error)
+      Swal.fire("Error", "Ocurrió un problema al cargar el ticket", "error")
+    }
+  }
+
+  useEffect(() => {
+    cargarCatalogos()
+    if (id) cargarTicket()
+  }, [id])
+
+  // --- Guardar cambios ---
+  const guardarCambios = async () => {
+    try {
+      const response = await fetch(`${appsettings.apiUrl}Tickets/Actualizar/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(cliente),
-      });
+        body: JSON.stringify(ticket),
+      })
 
-      if (!response.ok) throw new Error("Error al guardar");
-
-      Swal.fire({
-        title: "Éxito",
-        text: "Cliente editado correctamente",
-        icon: "success",
-        timer: 4000,
-        showConfirmButton: false,
-      });
-
-      navigate("/");
+      if (response.ok) {
+        Swal.fire("Éxito", "El ticket fue actualizado correctamente", "success")
+        navigate("/tickets/listatickets")
+      } else {
+        Swal.fire("Error", "No se pudo actualizar el ticket", "error")
+      }
     } catch (error) {
-      Swal.fire("Error", "No se pudo editar el cliente", "error");
+      console.error("Error al guardar:", error)
+      Swal.fire("Error", "Ocurrió un problema al guardar los cambios", "error")
     }
-  };
-
-  /** 🔹 Regresar */
-  const volver = () => navigate("/");
-
-  if (cargando) {
-    return (
-      <Container className="mt-5 text-center">
-        <h5>Cargando cliente...</h5>
-      </Container>
-    );
   }
+
+  // --- Volver ---
+  const volver = () => navigate("/tickets/listatickets")
 
   return (
     <Container className="mt-5">
       <Row>
         <Col sm={{ size: 8, offset: 2 }}>
-          <h4>Editar Cliente</h4>
+          <h4>Editar Ticket</h4>
           <hr />
           <Form>
             <FormGroup>
-              <Label for="nombreCliente">Nombre</Label>
-              <Input type="text" name="nombreCliente" onChange={inputChangeValue} value={cliente.nombreCliente} />
-            </FormGroup>
-
-            <FormGroup>
-              <Label for="apellidoCliente">Apellidos</Label>
-              <Input type="text" name="apellidoCliente" onChange={inputChangeValue} value={cliente.apellidoCliente} />
-            </FormGroup>
-
-            <FormGroup>
-              <Label for="correoCliente">Correo</Label>
+              <Label>Título del Ticket</Label>
               <Input
-                id="correoCliente"
-                type="email"
-                name="correoCliente"
-                value={cliente.correoCliente}
-                onChange={inputChangeValue}
-              />
-            </FormGroup>
-
-            <FormGroup>
-              <Label for="direccionCliente">Dirección</Label>
-              <Input
-                id="direccionCliente"
                 type="text"
-                name="direccionCliente"
-                value={cliente.direccionCliente}
+                name="tituloTicket"
                 onChange={inputChangeValue}
+                value={ticket.tituloTicket || ""}
               />
             </FormGroup>
 
             <FormGroup>
-              <Label for="codigoEstado">Estado</Label>
+              <Label>Descripción</Label>
               <Input
-                id="codigoEstado"
-                type="number"
-                name="codigoEstado"
-                value={cliente.codigoEstado}
+                type="textarea"
+                name="descripcionTicket"
                 onChange={inputChangeValue}
+                value={ticket.descripcionTicket || ""}
+              />
+            </FormGroup>
+
+            <FormGroup>
+              <Label>Cliente</Label>
+              <Input
+                type="select"
+                name="codigoCliente"
+                onChange={inputChangeValue}
+                value={ticket.codigoCliente || ""}
+              >
+                <option value="">Seleccione cliente</option>
+                {clientes.map((c) => (
+                  <option key={c.id} value={c.id}>{c.nombre}</option>
+                ))}
+              </Input>
+            </FormGroup>
+
+            <FormGroup>
+              <Label>Categoría</Label>
+              <Input
+                type="select"
+                name="codigoCategoria"
+                onChange={inputChangeValue}
+                value={ticket.codigoCategoria || ""}
+              >
+                <option value="">Seleccione categoría</option>
+                {categorias.map((c) => (
+                  <option key={c.id} value={c.id}>{c.nombre}</option>
+                ))}
+              </Input>
+            </FormGroup>
+
+            <FormGroup>
+              <Label>Prioridad</Label>
+              <Input
+                type="select"
+                name="codigoPrioridad"
+                onChange={inputChangeValue}
+                value={ticket.codigoPrioridad || ""}
+              >
+                <option value="">Seleccione prioridad</option>
+                {prioridades.map((p) => (
+                  <option key={p.id} value={p.id}>{p.nombre}</option>
+                ))}
+              </Input>
+            </FormGroup>
+
+            <FormGroup>
+              <Label>Departamento</Label>
+              <Input
+                type="select"
+                name="codigoDepto"
+                onChange={inputChangeValue}
+                value={ticket.codigoDepto || ""}
+              >
+                <option value="">Seleccione departamento</option>
+                {departamentos.map((d) => (
+                  <option key={d.id} value={d.id}>{d.nombre}</option>
+                ))}
+              </Input>
+            </FormGroup>
+
+            <FormGroup>
+              <Label>Usuario Asignado</Label>
+              <Input
+                type="select"
+                name="codigoUsuario"
+                onChange={inputChangeValue}
+                value={ticket.codigoUsuario || ""}
+              >
+                <option value="">Seleccione usuario</option>
+                {usuarios.map((u) => (
+                  <option key={u.id} value={u.id}>{u.nombre}</option>
+                ))}
+              </Input>
+            </FormGroup>
+
+            <FormGroup>
+              <Label>Estado</Label>
+              <Input
+                type="select"
+                name="codigoEstado"
+                onChange={inputChangeValue}
+                value={ticket.codigoEstado || ""}
+              >
+                <option value="">Seleccione estado</option>
+                {estados.map((e) => (
+                  <option key={e.id} value={e.id}>{e.nombre}</option>
+                ))}
+              </Input>
+            </FormGroup>
+
+            <FormGroup>
+              <Label>Usuario Creación</Label>
+              <Input
+                type="text"
+                name="usuarioCreacion"
+                readOnly
+                value={ticket.usuarioCreacion || ""}
+              />
+            </FormGroup>
+
+            <FormGroup>
+              <Label>Fecha de Creación</Label>
+              <Input
+                type="date"
+                name="fechaCreacion"
+                onChange={inputChangeValue}
+                value={ticket.fechaCreacion ? new Date(ticket.fechaCreacion).toISOString().split("T")[0] : ""}
+              />
+            </FormGroup>
+
+            <FormGroup>
+              <Label>Fecha de Cierre</Label>
+              <Input
+                type="date"
+                name="fechaCierre"
+                onChange={inputChangeValue}
+                value={ticket.fechaCierre ? new Date(ticket.fechaCierre).toISOString().split("T")[0] : ""}
               />
             </FormGroup>
           </Form>
 
-          <div className="d-flex justify-content-end mt-3">
-            <Button color="primary" className="me-3" onClick={guardar}>
-              Guardar
-            </Button>
-            <Button color="secondary" onClick={volver}>
-              Volver
-            </Button>
-          </div>
+          <Button color="primary" className="me-4" onClick={guardarCambios}>
+            Guardar Cambios
+          </Button>
+          <Button color="secondary" onClick={volver}>
+            Volver
+          </Button>
         </Col>
       </Row>
     </Container>

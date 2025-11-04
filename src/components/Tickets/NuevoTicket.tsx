@@ -21,7 +21,7 @@ const initialTicket: ITicket = {
   codigoDepto: 0,
   codigoUsuario: 0,
   codigoEstado: 0,
-  usuarioCreacion: "",
+  usuarioCreacion: localStorage.getItem("usuario") ?? "",
   fechaCreacion: new Date(),
   fechaModificacion: new Date(),
   fechaCierre: new Date(),
@@ -30,9 +30,9 @@ const initialTicket: ITicket = {
 export function NuevoTicket() {
   const navigate = useNavigate()
   const [ticket, setTicket] = useState<ITicket>(initialTicket)
-
+  
   // --- Catálogos ---
-  const [clientes, setClientes] = useState<ICatalogo[]>([])
+  const [cliente, setClientes] = useState<ICatalogo[]>([])
   const [categorias, setCategorias] = useState<ICatalogo[]>([])
   const [prioridades, setPrioridades] = useState<ICatalogo[]>([])
   const [departamentos, setDepartamentos] = useState<ICatalogo[]>([])
@@ -52,12 +52,12 @@ export function NuevoTicket() {
   const cargarCatalogos = async () => {
     try {
       const [clientesRes, categoriasRes, prioridadesRes, deptosRes, usuariosRes, estadosRes] = await Promise.all([
-        fetch(`${appsettings.apiUrl}Clientes/Obtener`),
-        fetch(`${appsettings.apiUrl}Categorias/Obtener`),
-        fetch(`${appsettings.apiUrl}Prioridades/Obtener`),
-        fetch(`${appsettings.apiUrl}Departamentos/Obtener`),
-        fetch(`${appsettings.apiUrl}Usuarios/Obtener`),
-        fetch(`${appsettings.apiUrl}Estados/Obtener`)
+        fetch(`${appsettings.apiUrl}Clientes/ObtenerC`),
+        fetch(`${appsettings.apiUrl}Categorias/ObtenerC`),
+        fetch(`${appsettings.apiUrl}Prioridades/ObtenerC`),
+        fetch(`${appsettings.apiUrl}Departamentos/ObtenerC`),
+        fetch(`${appsettings.apiUrl}Usuarios/ObtenerC`),
+        fetch(`${appsettings.apiUrl}Estados/ObtenerC`)
       ])
 
       if (clientesRes.ok && categoriasRes.ok && prioridadesRes.ok && deptosRes.ok && usuariosRes.ok && estadosRes.ok) {
@@ -90,14 +90,14 @@ export function NuevoTicket() {
 
     if (response.ok) {
       Swal.fire("Éxito", "El ticket fue creado correctamente", "success")
-      navigate("/listatickets")
+      navigate("/tickets/listatickets")
     } else {
       Swal.fire("Error", "No se pudo guardar el ticket", "error")
     }
   }
 
   // --- Volver ---
-  const volver = () => navigate("/listatickets")
+  const volver = () => navigate("/tickets/listatickets")
 
   return (
     <Container className="mt-5">
@@ -136,7 +136,7 @@ export function NuevoTicket() {
                 value={ticket.codigoCliente}
               >
                 <option value="">Seleccione cliente</option>
-                {clientes.map((c) => (
+                {cliente.map((c) => (
                   <option key={c.id} value={c.id}>{c.nombre}</option>
                 ))}
               </Input>
@@ -223,9 +223,30 @@ export function NuevoTicket() {
                 type="text"
                 name="usuarioCreacion"
                 onChange={inputChangeValue}
-                value={ticket.usuarioCreacion}
+                value={ticket.usuarioCreacion}       
               />
             </FormGroup>
+
+            <FormGroup>
+              <Label>Fecha de Creación</Label>
+              <Input
+                type="date"
+                name="fechaCreacion"
+                onChange={inputChangeValue}
+                value={ticket.fechaCreacion}
+              />
+            </FormGroup>      
+            
+            <FormGroup>
+              <Label>Fecha de Cierre</Label>
+              <Input
+                type="date"
+                name="fechaCierre"
+                onChange={inputChangeValue}
+                value={ticket.fechaCierre}
+              />
+            </FormGroup>
+
           </Form>
 
           <Button color="primary" className="me-4" onClick={guardar}>

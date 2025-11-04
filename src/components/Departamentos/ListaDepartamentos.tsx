@@ -51,7 +51,7 @@ export function ListaDepartamentos() {
                                    <tr>
                                         <th>Codigo Depto</th>
                                         <th>Nombre</th>
-                                        <th>Descripción</th>
+                                         <th>Descripción</th>
                                                                                                                    
                                    </tr>
                               </thead>

@@ -66,8 +66,8 @@ export function Login() {
         setTimeout(() => {
           window.location.reload();
         }, 300);
-        alert(localStorage.getItem("token"));
-        alert(localStorage.getItem("usuario"));
+        //alert(localStorage.getItem("token"));
+        //alert(localStorage.getItem("usuario"));
 
       } else {
         Swal.fire({

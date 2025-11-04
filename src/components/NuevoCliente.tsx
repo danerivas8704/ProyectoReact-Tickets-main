@@ -35,7 +35,7 @@ export function NuevoCliente(){
                 body: JSON.stringify(cliente)
            })
            if(response.ok){
-                navigate("/")
+                navigate("/lista")
            }else{
                 Swal.fire({
                      title: "Error!",

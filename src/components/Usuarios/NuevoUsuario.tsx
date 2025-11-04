@@ -36,7 +36,7 @@ export function NuevoUsuario() {
   useEffect(() => {
     const obtenerEstados = async () => {
       try {
-        const response = await fetch(`${appsettings.apiUrl}Usuarios/ObtenerC`);
+        const response = await fetch(`${appsettings.apiUrl}Estados/ObtenerC`);
         if (response.ok) {
           const data = await response.json();
           setEstados(data);
@@ -51,7 +51,7 @@ export function NuevoUsuario() {
         console.error(error);
         Swal.fire({
           title: "Error!",
-          text: "Error al obtener las prioridades",
+          text: "Error al obtener los estados",
           icon: "error",
         });
       }

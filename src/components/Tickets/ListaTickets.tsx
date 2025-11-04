@@ -10,7 +10,7 @@ export function ListaTickets() {
     const [filtro, setFiltro] = useState<string>("")
     const [paginaActual, setPaginaActual] = useState<number>(1)
     const [ticketsPorPagina] = useState<number>(5)
-
+    
     // --- Cargar tickets ---
     const obtenerTickets = async () => {
         const response = await fetch(`${appsettings.apiUrl}Tickets/Obtener`)
@@ -70,7 +70,7 @@ export function ListaTickets() {
                 <Col sm={{ size: 10, offset: 1 }}>
                     <h4>Lista de Tickets</h4>
                     <hr />
-                    <Link className="btn btn-success mb-3" to="/nuevoticket">Nuevo Ticket</Link>
+                    <Link className="btn btn-success mb-3" to="/tickets/nuevoticket">Nuevo Ticket</Link>
 
                     {/* --- Filtro de búsqueda --- */}
                     <Input
@@ -112,7 +112,7 @@ export function ListaTickets() {
                                         <td>
                                             <Link
                                                 className="btn btn-primary me-2"
-                                                to={`/editarticket/${item.codigoTicket}`}
+                                                to={`/tickets/editartickets/${item.codigoTicket}`}
                                             >
                                                 Editar
                                             </Link>
